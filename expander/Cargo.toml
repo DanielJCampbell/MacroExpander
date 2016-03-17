@@ -1,0 +1,8 @@
+[package]
+name = "expander"
+version = "0.1.0"
+authors = ["Daniel Campbell <campbelldj@hotmail.com>"]
+
+[dependencies]
+syntex_syntax = "0.29.1"
+rustfmt = { path = "../rustfmt/" }
