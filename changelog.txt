@@ -1,9 +1,9 @@
 Changelog:
 
 Rustfmt:
-Visitor and Modules mods changed to public
-filemap::write_files made public
+Visitor and Modules mods changed to public (lib.rs)
+filemap::write_files made public (filemap.rs)
 
-Syntex_Syntax:
+Syntex_Syntax: No changes
 
 
