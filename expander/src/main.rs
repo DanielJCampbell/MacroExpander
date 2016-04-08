@@ -2,12 +2,13 @@ extern crate rustfmt;
 extern crate syntex_syntax as syntax;
 
 use syntax::ast;
-use syntax::ext::base::ExtCtxt;
+use syntax::ext::base::{ExtCtxt, SyntaxExtension};
 use syntax::ext::expand::ExpansionConfig;
 use syntax::codemap::CodeMap;
 use syntax::errors::Handler;
 use syntax::errors::emitter::{ColorConfig};
 use syntax::parse::{self, ParseSess};
+use syntax::parse::token::intern;
 
 use rustfmt::filemap::FileMap;
 use rustfmt::config::{Config, WriteMode};
@@ -46,7 +47,7 @@ fn init_data() -> ExpandData {
                                                 codemap.clone());
     let session = ParseSess::with_span_handler(tty_handler, codemap.clone());
     let mut krates = vec!();
-    krates.push(parse::parse_crate_from_file(&Path::new(&file), Vec::new(), &session));
+    krates.push(parse::parse_crate_from_file(&Path::new(&file), Vec::new(), &session).unwrap());
     ExpandData {
         crate_name: Path::new(&file).file_stem()
                                    .and_then(|stem| stem.to_str())
@@ -95,12 +96,17 @@ fn write_file(data: &mut ExpandData) {
 fn expand_crate(data: &mut ExpandData) {
     let ex_cfg = ExpansionConfig::default(data.crate_name.clone());
     let mut tmp_vec = vec!();
-    let ecx = ExtCtxt::new(&data.session,
+    let mut ecx = ExtCtxt::new(&data.session,
                                data.krates[data.index].config.clone(),
                                ex_cfg,
                                &mut tmp_vec);
+    ecx.syntax_env.insert(intern("macro_rules"), SyntaxExtension::MacroRulesTT);
+
+    //TODO: Can't expand builtins yet
+    //syntax_ext::register_builtins(&mut ecx.syntax_env);
     let expanded = syntax::ext::expand::expand_crate(ecx, Vec::new(), Vec::new(),
                                                      data.krates[data.index].clone()).0;
+
     data.krates.push(expanded);
     data.index += 1; //Next expansion/write should happen on new crate
 }
