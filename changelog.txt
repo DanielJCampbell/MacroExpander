@@ -3,7 +3,10 @@ Changelog:
 Rustfmt:
 Visitor and Modules mods changed to public (lib.rs)
 filemap::write_files made public (filemap.rs)
+visitor.rs - added generated code check to push_rewrite
 
-Syntex_Syntax: No changes
+Syntex_Syntax:
+
+ext/expand.rs - expand_stmt() extended to properly register span expn_ids.
 
 
