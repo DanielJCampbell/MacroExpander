@@ -126,12 +126,13 @@ impl<'a> ExpandData<'a> {
                                 expand_stmt,
                                 expand_item,
                                 expand_impl_item,
+                                expand_trait_item,
                                 expand_opt_expr);
 
 
-            krate = expand::expand_crate(&mut expander,
-                                         Vec::new(),
-                                         krate).0;
+            krate = expand::expand_crate_with_expander(&mut expander,
+                                                       Vec::new(),
+                                                       krate).0;
         }
 
         krate = self.fold_crate(krate);
@@ -151,8 +152,10 @@ impl<'a> ExpandData<'a> {
         let out = &mut stdout();
 
         for (ref filename, ref text) in fm {
-            let prefix = Path::new(filename).file_stem().and_then(|stem| stem.to_str()).unwrap_or("");
-            let parent = Path::new(filename).parent().and_then(|path| path.to_str()).unwrap_or("");
+            let prefix = Path::new(filename).file_stem()
+                         .and_then(|stem| stem.to_str()).unwrap_or("");
+            let parent = Path::new(filename).parent()
+                         .and_then(|path| path.to_str()).unwrap_or("");
             let file = format!("{}/{}Output{}.rs", parent, prefix, self.index);
             let res = rustfmt::filemap::write_file(text, &file, out, &self.config);
             if let Err(_) = res {
@@ -165,7 +168,6 @@ impl<'a> ExpandData<'a> {
 //Walk over AST of expanded crate to patch up spans
 impl<'a> Folder for ExpandData<'a> {
     fn fold_pat(&mut self, pat: P<ast::Pat>) -> P<ast::Pat> {
-        println!("Folding pat");
         if pat.span.expn_id == NO_EXPANSION {
             return fold::noop_fold_pat(pat, self);
         }
@@ -175,7 +177,6 @@ impl<'a> Folder for ExpandData<'a> {
     }
 
     fn fold_ty(&mut self, ty: P<ast::Ty>) -> P<ast::Ty> {
-        println!("Folding ty");
         if ty.span.expn_id == NO_EXPANSION {
             return fold::noop_fold_ty(ty, self);
         }
@@ -185,27 +186,26 @@ impl<'a> Folder for ExpandData<'a> {
     }
 
     fn fold_expr(&mut self, expr: P<ast::Expr>) -> P<ast::Expr> {
-        println!("Folding expr");
         if expr.span.expn_id == NO_EXPANSION {
             return ptr::P(fold::noop_fold_expr(expr.unwrap(), self));
         }
         
         self.insert(expr.span);
-        ptr::P(fold::noop_fold_expr(expr.map(|elt| ast::Expr { span: self.get(elt.span), .. elt }).unwrap(), self))
+        ptr::P(fold::noop_fold_expr(expr.map(|elt| ast::Expr { span: self.get(elt.span), .. elt })
+                                        .unwrap(), self))
     }
 
     fn fold_opt_expr(&mut self, opt: P<ast::Expr>) -> Option<P<ast::Expr>> {
-        println!("Folding optexpr");
         if opt.span.expn_id == NO_EXPANSION {
             return fold::noop_fold_opt_expr(opt, self);
         }
         
         self.insert(opt.span);
-        fold::noop_fold_opt_expr(opt.map(|elt| ast::Expr { span: self.get(elt.span), .. elt }), self)
+        fold::noop_fold_opt_expr(opt.map(|elt| ast::Expr { span: self.get(elt.span), .. elt }),
+                                 self)
     }
 
     fn fold_item(&mut self, item: P<ast::Item>) -> SmallVector<P<ast::Item>> {
-        println!("Folding item");
         if item.span.expn_id == NO_EXPANSION {
             return fold::noop_fold_item(item, self);
         }
@@ -215,25 +215,30 @@ impl<'a> Folder for ExpandData<'a> {
     }
 
     fn fold_stmt(&mut self, stmt: ast::Stmt) -> SmallVector<ast::Stmt> {
-        println!("Folding statemet");
         if stmt.span.expn_id == NO_EXPANSION {
             return fold::noop_fold_stmt(stmt, self);
         }
-        println!("Span: {}", self.cx.codemap().span_to_expanded_string(stmt.span.clone()));
-        println!("Got Span: {}", self.cx.codemap().span_to_expanded_string(self.get(stmt.span.clone())));
-        
+
         self.insert(stmt.span);
         return fold::noop_fold_stmt(ast::Stmt { span: self.get(stmt.span), .. stmt }, self)
     }
 
     fn fold_impl_item(&mut self, item: ast::ImplItem) -> SmallVector<ast::ImplItem> {
-        println!("Folding implitem");
         if item.span.expn_id == NO_EXPANSION {
             return fold::noop_fold_impl_item(item, self);
         }
         
         self.insert(item.span);
         return fold::noop_fold_impl_item(ast::ImplItem { span: self.get(item.span), .. item }, self)
+    }
+
+    fn fold_trait_item(&mut self, item: ast::TraitItem) -> SmallVector<ast::TraitItem> {
+        if item.span.expn_id == NO_EXPANSION {
+            return fold::noop_fold_trait_item(item, self);
+        }
+        
+        self.insert(item.span);
+        return fold::noop_fold_trait_item(ast::TraitItem { span: self.get(item.span), .. item }, self)
     }
 
     fn fold_mac(&mut self, mac: ast::Mac) -> ast::Mac {
