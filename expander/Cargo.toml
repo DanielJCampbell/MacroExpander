@@ -4,5 +4,5 @@ version = "0.1.0"
 authors = ["Daniel Campbell <campbelldj@hotmail.com>"]
 
 [dependencies]
-syntex_syntax = { path = "../syntex/syntex_syntax/" }
+# syntex_syntax = { path = "../syntex/syntex_syntax/" }
 rustfmt = { path = "../rustfmt/" }
